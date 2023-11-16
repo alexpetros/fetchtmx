@@ -39,5 +39,5 @@ I don't even know if I'll finish it. It's a research project whose findings (if 
 available for use by anyone, especially including bigskysoftware.
 
 ## What license is this available under?
-BSD 2-Clause, same as htmx. The tests are lifted directly from that repo and are being modified for
-use in this project. The `htmx.js` source file is my own, but licensed under the same terms.
+BSD 2-Clause, same as htmx. The tests are based on the tests from the htmx and are being modified
+for use in this project. The `htmx.js` source file is my own, but licensed under the same terms.
