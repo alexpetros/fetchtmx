@@ -15,6 +15,9 @@ function addListener(element, method) {
   if (!attribRoute) return
 
   const isForm = element.tagName === 'FORM'
+  const type = element.getAttribute('type')
+  const isSubmitButton = element.tagName === 'BUTTON' &&
+    (type === 'submit' || type === null)
 
   const baseTrigger = isForm ? 'submit' : 'click'
   const userTrigger = element.getAttribute('hx-trigger')
@@ -42,10 +45,18 @@ function addListener(element, method) {
     route += glueString + `org.htmx.cache-buster=${value}`
   }
 
+  // When adding core attributes, don't allow the document to submit a form
+  if (isForm) {
+    element.addEventListener('submit', (e) => e.preventDefault())
+  } else if (isSubmitButton) {
+    const closestForm = element.closest('form')
+    if (closestForm) closestForm.addEventListener('submit', e => e.preventDefault())
+  }
+
   // Add back the anchor link if there was one
   route += anchorLink
 
-  element.addEventListener(trigger, async() => {
+  element.addEventListener(trigger, async () => {
     try {
       const res = await fetch(route, { method })
       const text = await res.text()
@@ -54,6 +65,7 @@ function addListener(element, method) {
       throw error
     }
   })
+
 }
 
 function process(element) {
@@ -72,4 +84,3 @@ if (document.readyState === 'loading') {
   processAll()
 }
 
-document.addEventListener('submit', (e) => e.preventDefault())

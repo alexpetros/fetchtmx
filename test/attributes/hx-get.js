@@ -35,7 +35,6 @@ describe("hx-get attribute", function() {
 
   it('GET on form with existing parameters works properly', async () => {
     fetchMock.get('/test?foo=bar&i1=value', 'Clicked!')
-
     var form = make('<form hx-trigger="click" hx-get="/test?foo=bar"><input name="i1" value="value"/><button id="b1">Click Me!</button></form>')
     form.click()
     await fetchMock.flush(true)
