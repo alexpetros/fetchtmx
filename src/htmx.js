@@ -14,10 +14,13 @@ function addListener(element, method) {
   const attribRoute = element.getAttribute(`hx-${method}`) || element.getAttribute(`data-hx-${method}`)
   if (!attribRoute) return
 
-  const isForm = element.tagName === 'FORM'
+  const { tagName } = element
+  const isForm = tagName === 'FORM'
   const type = element.getAttribute('type')
-  const isSubmitButton = element.tagName === 'BUTTON' &&
+  const isSubmitButton = tagName === 'BUTTON' &&
     (type === 'submit' || type === null)
+
+  const hasValue = tagName === 'INPUT' || tagName === 'SELECT'
 
   const baseTrigger = isForm ? 'submit' : 'click'
   const userTrigger = element.getAttribute('hx-trigger')
@@ -28,8 +31,14 @@ function addListener(element, method) {
   let [unpoundedUrl, anchorLink] = attribRoute.split('#', 2)
   anchorLink = anchorLink ? '#' + anchorLink : ''
 
-  if (isForm) {
-    const data = new FormData(element)
+  const data = isForm ? new FormData(element) : new FormData()
+
+  const name = element.getAttribute('name')
+  const value = element.getAttribute('value')
+  if (hasValue) data.append(name, value)
+
+  // If there are params, add them
+  if (data.entries().next().done !== true) {
     const params = new URLSearchParams(data)
     // Preserve the query parameters in the attribRoute, if any
     const [baseUrl, existingParams] = unpoundedUrl.split('?', 2)
@@ -56,11 +65,14 @@ function addListener(element, method) {
   // Add back the anchor link if there was one
   route += anchorLink
 
+  const inheritedTarget = element.closest('[hx-target]') || element.closest ('[data-hx-target]')
+  const target = inheritedTarget || element
+
   element.addEventListener(trigger, async () => {
     try {
       const res = await fetch(route, { method })
       const text = await res.text()
-      element.innerHTML = text
+      target.innerHTML = text
     } catch (error) {
       throw error
     }
