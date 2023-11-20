@@ -8,7 +8,7 @@ const htmx = {
   process,
 }
 
-const methods = ['get', 'post']
+const methods = ['get', 'post', 'delete', 'put', 'patch']
 
 function addListener(element, method) {
   const attribRoute = element.getAttribute(`hx-${method}`) || element.getAttribute(`data-hx-${method}`)
@@ -61,7 +61,15 @@ function process(element) {
   for (let child of element.children) process(child)
 }
 
-// const toProcess = document.querySelectorAll('[hx-post], [data-hx-post]')
+function processAll () {
+  const toProcess = document.querySelectorAll('[hx-get]')
+  toProcess.forEach(process)
+}
 
-// Keep forms form redirecting until I do forms
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', processAll)
+} else {
+  processAll()
+}
+
 document.addEventListener('submit', (e) => e.preventDefault())

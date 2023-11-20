@@ -1,34 +1,26 @@
 describe("hx-delete attribute", function(){
     beforeEach(function() {
-        this.server = makeServer();
         clearWorkArea();
     });
     afterEach(function()  {
-        this.server.restore();
+        fetchMock.restore()
         clearWorkArea();
     });
 
-    it('issues a DELETE request', function()
-    {
-        this.server.respondWith("DELETE", "/test", function(xhr){
-            xhr.respond(200, {}, "Deleted!");
-        });
+    it('issues a DELETE request', async () => {
+        fetchMock.delete("/test", 'Deleted!')
 
         var btn = make('<button hx-delete="/test">Click Me!</button>')
         btn.click();
-        this.server.respond();
+        await fetchMock.flush(true)
         btn.innerHTML.should.equal("Deleted!");
     });
 
-    it('issues a DELETE request w/ data-* prefix', function()
-    {
-        this.server.respondWith("DELETE", "/test", function(xhr){
-            xhr.respond(200, {}, "Deleted!");
-        });
-
+    it('issues a DELETE request w/ data-* prefix', async () => {
+        fetchMock.delete("/test", 'Deleted!')
         var btn = make('<button data-hx-delete="/test">Click Me!</button>')
         btn.click();
-        this.server.respond();
+        await fetchMock.flush(true)
         btn.innerHTML.should.equal("Deleted!");
     });
 })

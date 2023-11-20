@@ -1,42 +1,41 @@
-describe("Core htmx AJAX Verbs", function() {
-    beforeEach(function () {
-        this.server = makeServer();
+describe("Core htmx AJAX Verbs", async () => {
+    beforeEach(async () => {
         clearWorkArea();
     });
-    afterEach(function () {
-        this.server.restore();
+    afterEach(async () => {
+        fetchMock.restore()
         clearWorkArea();
     });
 
-    it('handles basic posts properly', function () {
-        this.server.respondWith("POST", "/test", "post");
+    it('handles basic posts properly', async () => {
+        fetchMock.post("/test", 'post')
         var div = make('<div hx-post="/test">click me</div>');
         div.click();
-        this.server.respond();
+        await fetchMock.flush(true)
         div.innerHTML.should.equal("post");
     })
 
-    it('handles basic put properly', function () {
-        this.server.respondWith("PUT", "/test", "put");
+    it('handles basic put properly', async () => {
+        fetchMock.put("/test", 'put')
         var div = make('<div hx-put="/test">click me</div>');
         div.click();
-        this.server.respond();
+        await fetchMock.flush(true)
         div.innerHTML.should.equal("put");
     })
 
-    it('handles basic patch properly', function () {
-        this.server.respondWith("PATCH", "/test", "patch");
+    it('handles basic patch properly', async () => {
+        fetchMock.patch("/test", 'patch')
         var div = make('<div hx-patch="/test">click me</div>');
         div.click();
-        this.server.respond();
+        await fetchMock.flush(true)
         div.innerHTML.should.equal("patch");
     })
 
-    it('handles basic delete properly', function () {
-        this.server.respondWith("DELETE", "/test", "delete");
+    it('handles basic delete properly', async () => {
+        fetchMock.delete("/test", 'delete')
         var div = make('<div hx-delete="/test">click me</div>');
         div.click();
-        this.server.respond();
+        await fetchMock.flush(true)
         div.innerHTML.should.equal("delete");
     })
 
