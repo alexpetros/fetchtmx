@@ -4,4 +4,7 @@
 
 <h1>Get Test</h1>
 <input type="text">
-<button hx-get="/button-res.html">Click me!</button>
+<form hx-post="./button-res.html">
+  <input type=hidden value=test>
+  <button>Click me!</button>
+</form>

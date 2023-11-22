@@ -8,7 +8,10 @@ describe("hx-include attribute", function() {
   });
 
   it('By default an input includes itself', async () => {
-    fetchMock.post('/include?i1=test', 'Clicked!')
+    // fetchMock.post({ url: '/include', body: 'i1=test' }, 'Clicked!')
+    fetchMock.post((url, options) => {
+      return url === '/include' && options.body === 'i1=test'
+    }, 'Clicked!')
     var div = make('<div hx-target="this"><input hx-post="/include" hx-trigger="click" id="i1" name="i1" value="test"/></div>')
     var input = byId("i1")
     input.click();
@@ -17,7 +20,9 @@ describe("hx-include attribute", function() {
   });
 
   it('By default an input includes itself w/ data-* prefix', async () => {
-    fetchMock.post('/include?i1=test', 'Clicked!')
+    fetchMock.post((url, options) => {
+      return url === '/include' && options.body === 'i1=test'
+    }, 'Clicked!')
     var div = make('<div data-hx-target="this"><input hx-post="/include" data-hx-trigger="click" id="i1" name="i1" value="test"/></div>')
     var input = byId("i1")
     input.click();
@@ -25,78 +30,72 @@ describe("hx-include attribute", function() {
     div.innerHTML.should.equal("Clicked!");
   });
 
-  it('non-GET includes closest form', function () {
-    this.server.respondWith("POST", "/include", function (xhr) {
-      var params = getParameters(xhr);
-      params['i1'].should.equal("test");
-      xhr.respond(200, {}, "Clicked!")
-    });
+  it('non-GET includes data from closest form', async () => {
+    fetchMock.post((url, options) => {
+      return url === '/include' && options.body === 'i1=test'
+    }, 'Clicked!')
     var div = make('<form hx-target="this"><div id="d1" hx-post="/include"></div><input name="i1" value="test"/></form>')
     var input = byId("d1")
     input.click();
-    this.server.respond();
+    await fetchMock.flush(true)
     div.innerHTML.should.equal("Clicked!");
   });
 
-  it('non-GET includes closest form and overrides values included that exist outside the form', function () {
-    this.server.respondWith("POST", "/include", function (xhr) {
-      var params = getParameters(xhr);
-      params['i1'].should.equal("test");
-      xhr.respond(200, {}, "Clicked!")
-    });
-    var div = make('<div hx-include="*" hx-target="this">' +
-      '<input name="i1" value="before"/>' +
-      '<form><div id="d1" hx-post="/include"></div><input name="i1" value="test"/></form>' +
-      '<input name="i1" value="after"/>')
+  it('non-GET includes data from closest form and nothing outside of it', async () => {
+    fetchMock.post((url, options) => {
+      return url === '/include' && options.body === 'i1=test'
+    }, 'Clicked!')
+    var div = make(`
+      <div hx-include="*" hx-target="this">
+        <input name="i1" value="before"/>
+        <form><div id="d1" hx-post="/include"></div><input name="i1" value="test"/></form>
+        <input name="i1" value="after"/>
+      </div>
+    `)
     var input = byId("d1")
     input.click();
-    this.server.respond();
+    await fetchMock.flush(true)
     div.innerHTML.should.equal("Clicked!");
   });
 
-  it('GET does not include closest form by default', function () {
-    this.server.respondWith("GET", "/include", function (xhr) {
-      var params = getParameters(xhr);
-      should.equal(params['i1'], undefined);
-      xhr.respond(200, {}, "Clicked!")
-    });
+  it('GET does not include closest form by default', async () => {
+    fetchMock.get((url, options) => {
+      return url === '/include' && !options.body
+    }, 'Clicked!')
     var div = make('<form hx-target="this"><div id="d1" hx-get="/include"></div><input name="i1" value="test"/></form>')
     var input = byId("d1")
     input.click();
-    this.server.respond();
+    await fetchMock.flush(true)
     div.innerHTML.should.equal("Clicked!");
   });
 
-  it('Single input not included twice when in form', function () {
-    this.server.respondWith("POST", "/include", function (xhr) {
-      var params = getParameters(xhr);
-      params['i1'].should.equal("test");
-      xhr.respond(200, {}, "Clicked!")
-    });
+  it('An input is not included twice when it has hx-post and it is in a form', async () => {
+    fetchMock.post((url, options) => {
+      return url === '/include' && options.body === 'i1=test'
+    }, 'Clicked!')
     var div = make('<form hx-target="this"><input hx-post="/include" hx-trigger="click" id="i1" name="i1" value="test"/></form>')
     var input = byId("i1")
     input.click();
-    this.server.respond();
+    await fetchMock.flush(true)
     div.innerHTML.should.equal("Clicked!");
   });
 
-  it('Two inputs are included twice when they have the same name', function () {
-    this.server.respondWith("POST", "/include", function (xhr) {
-      var params = getParameters(xhr);
-      params['i1'].should.deep.equal(["test", "test2"]);
-      xhr.respond(200, {}, "Clicked!")
-    });
+  it('Two inputs are included twice when they have the same name', async () => {
+    fetchMock.post((url, options) => {
+      console.log(options.body)
+      return url === '/include' && options.body === 'i1=test&i1=test2'
+    }, 'Clicked!')
     var div = make('<div hx-include="*" hx-target="this">' +
       '<input hx-post="/include" hx-trigger="click" id="i1" name="i1" value="test"/>' +
       '<input name="i1" value="test2"/>' +
       '</div>')
     var input = byId("i1")
     input.click();
-    this.server.respond();
+    await fetchMock.flush(true)
     div.innerHTML.should.equal("Clicked!");
   });
 
-  it('Two inputs are included twice when in form when they have the same name', function () {
+  it('Two inputs are included twice when in form when they have the same name', async () => {
     this.server.respondWith("POST", "/include", function (xhr) {
       var params = getParameters(xhr);
       params['i1'].should.deep.equal(["test", "test2"]);
@@ -112,7 +111,7 @@ describe("hx-include attribute", function() {
     div.innerHTML.should.equal("Clicked!");
   });
 
-  it('Input not included twice when it explicitly refers to parent form', function () {
+  it('Input not included twice when it explicitly refers to parent form', async () => {
     this.server.respondWith("POST", "/include", function (xhr) {
       var params = getParameters(xhr);
       params['i1'].should.equal("test");
@@ -127,7 +126,7 @@ describe("hx-include attribute", function() {
     div.innerHTML.should.equal("Clicked!");
   });
 
-  it('Input can be referred to externally', function () {
+  it('Input can be referred to externally', async () => {
     this.server.respondWith("POST", "/include", function (xhr) {
       var params = getParameters(xhr);
       params['i1'].should.equal("test");
