@@ -11,18 +11,18 @@ const htmx = {
 const primaryAttributes = ['hx-get', 'hx-post', 'hx-delete', 'hx-put', 'hx-patch']
 
 function addPrimary(element, method) {
-  const attribRoute = getAttribute(element, `hx-${method}`)
+  const attribRoute = hxVal(element, `hx-${method}`)
   if (!attribRoute) return
 
   const { tagName } = element
   const isForm = tagName === 'FORM'
-  const type = getAttribute(element, 'type')
+  const type = hxVal(element, 'type')
   const isSubmitButton = tagName === 'BUTTON' && (type === 'submit' || type === null)
 
   const hasValue = tagName === 'INPUT' || tagName === 'SELECT'
 
   const baseTrigger = isForm ? 'submit' : 'click'
-  const userTrigger = getAttribute(element, 'hx-trigger')
+  const userTrigger = hxVal(element, 'hx-trigger')
   const trigger = userTrigger || baseTrigger
 
   let route = attribRoute
@@ -35,12 +35,22 @@ function addPrimary(element, method) {
   // If there is data associated with the request, collect it
   let formData = new FormData()
   const closestForm = element.closest('form') || undefined
+  const closestInclude = element.closest('[hx-include]') || undefined
   if (isForm) {
     formData = new FormData(element)
   } else if (closestForm) {
     // [EXT] I don't really like the implicit inclusion of form data on hx-[!get] inside forms
     if (method !== 'get') formData = new FormData(closestForm)
-  } else if (hasValue) {
+  } else if (closestInclude) {
+    const includeSelector = hxVal(closestInclude, 'hx-include')
+    const elementsToSubmit = document.querySelectorAll(`${includeSelector}`)
+    elementsToSubmit.forEach(e => {
+      const name = e.getAttribute('name')
+      const value = e.value
+      if (name) formData.append(name, value)
+    })
+  }
+  else if (hasValue) {
     const name = element.getAttribute('name')
     const value = element.value
     formData.append(name, value)
@@ -58,7 +68,7 @@ function addPrimary(element, method) {
 
   if (htmx.config.getCacheBusterParam) {
     const glueString = route.includes('?') ? '&' : '?'
-    const value = getAttribute(element, 'id') || 'true'
+    const value = hxVal(element, 'id') || 'true'
     route += glueString + `org.htmx.cache-buster=${value}`
   }
 
@@ -102,8 +112,9 @@ function appendQueryParams(route, formData) {
     return baseUrl + '?' + firstParamString + secondParamString
 }
 
-function getAttribute(element, name) {
-  return element.getAttribute(name) || element.getAttribute('data-' + name)
+function hxVal(element, name, inherited = false) {
+  const elementWithValue = inherited ? element.closest('[name]') : element
+  return elementWithValue.getAttribute(name) || elementWithValue.getAttribute('data-' + name)
 }
 
 function process(element) {

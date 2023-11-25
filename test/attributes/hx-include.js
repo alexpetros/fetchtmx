@@ -85,57 +85,57 @@ describe("hx-include attribute", function() {
       console.log(options.body)
       return url === '/include' && options.body === 'i1=test&i1=test2'
     }, 'Clicked!')
-    var div = make('<div hx-include="*" hx-target="this">' +
-      '<input hx-post="/include" hx-trigger="click" id="i1" name="i1" value="test"/>' +
-      '<input name="i1" value="test2"/>' +
-      '</div>')
+    var div = make(`
+      <div hx-include="*" hx-target="this">
+        <input hx-post="/include" hx-trigger="click" id="i1" name="i1" value="test"/>
+        <input name="i1" value="test2"/>
+      </div>
+    `)
     var input = byId("i1")
     input.click();
     await fetchMock.flush(true)
     div.innerHTML.should.equal("Clicked!");
   });
 
-  it('Two inputs are included twice when in form when they have the same name', async () => {
-    this.server.respondWith("POST", "/include", function (xhr) {
-      var params = getParameters(xhr);
-      params['i1'].should.deep.equal(["test", "test2"]);
-      xhr.respond(200, {}, "Clicked!")
-    });
-    var div = make('<form hx-target="this">' +
-      '<input hx-post="/include" hx-trigger="click" id="i1" name="i1" value="test"/>' +
-      '<input name="i1" value="test2"/>' +
-      '</form>')
+  it('Two form inputs are included twice when they have the same name', async () => {
+    fetchMock.post((url, options) => {
+      return url === '/include' && options.body === 'i1=test&i1=test2'
+    }, 'Clicked!')
+    var div = make(`
+      <form hx-target="this">
+        <input hx-post="/include" hx-trigger="click" id="i1" name="i1" value="test"/>
+        <input name="i1" value="test2"/>
+      </form>
+    `)
     var input = byId("i1")
     input.click();
-    this.server.respond();
+    await fetchMock.flush(true)
     div.innerHTML.should.equal("Clicked!");
   });
 
   it('Input not included twice when it explicitly refers to parent form', async () => {
-    this.server.respondWith("POST", "/include", function (xhr) {
-      var params = getParameters(xhr);
-      params['i1'].should.equal("test");
-      xhr.respond(200, {}, "Clicked!")
-    });
-    var div = make('<form id="f1" hx-target="this">' +
-      '<input hx-include="#f1" hx-post="/include" hx-trigger="click" id="i1" name="i1" value="test"/>' +
-      '</form>')
+    fetchMock.post((url, options) => {
+      return url === '/include' && options.body === 'i1=test'
+    }, 'Clicked!')
+    var div = make(`
+      <form id="f1" hx-target="this">
+        <input hx-include="#f1" hx-post="/include" hx-trigger="click" id="i1" name="i1" value="test"/>
+      </form>
+    `)
     var input = byId("i1")
     input.click();
-    this.server.respond();
+    await fetchMock.flush(true)
     div.innerHTML.should.equal("Clicked!");
   });
 
   it('Input can be referred to externally', async () => {
-    this.server.respondWith("POST", "/include", function (xhr) {
-      var params = getParameters(xhr);
-      params['i1'].should.equal("test");
-      xhr.respond(200, {}, "Clicked!")
-    });
+    fetchMock.post((url, options) => {
+      return url === '/include' && options.body === 'i1=test'
+    }, 'Clicked!')
     make('<input id="i1" name="i1" value="test"/>');
     var div = make('<div hx-post="/include" hx-include="#i1"></div>')
     div.click();
-    this.server.respond();
+    await fetchMock.flush(true)
     div.innerHTML.should.equal("Clicked!");
   });
 
