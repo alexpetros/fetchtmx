@@ -47,7 +47,7 @@ function addPrimary(element, method) {
     elementsToSubmit.forEach(e => {
       const name = e.getAttribute('name')
       const value = e.value
-      if (name) formData.append(name, value)
+      if (name && value) formData.append(name, value)
     })
   }
   else if (hasValue) {
