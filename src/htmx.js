@@ -43,14 +43,12 @@ function addPrimary(element, method) {
     if (method !== 'get') formData = new FormData(closestForm)
   } else if (closestInclude) {
     const includeSelector = hxVal(closestInclude, 'hx-include')
-    const elementsToSubmit = document.querySelectorAll(`${includeSelector}`)
-    elementsToSubmit.forEach(e => {
-      const name = e.getAttribute('name')
-      const value = e.value
-      if (name && value) formData.append(name, value)
-    })
-  }
-  else if (hasValue) {
+    const elementsToSubmit = includeSelector === 'this' ?
+      closestInclude.querySelectorAll('*') :
+      eQuerySelector(element, `${includeSelector}`)
+    const processed = new Set()
+    elementsToSubmit.forEach(e => { includeElement(e, formData, processed) })
+  } else if (hasValue) {
     const name = element.getAttribute('name')
     const value = element.value
     formData.append(name, value)
@@ -98,6 +96,35 @@ function addPrimary(element, method) {
 
 }
 
+function process(element) {
+  primaryAttributes.forEach((name) => {
+    const [, method] = name.split('-')
+    addPrimary(element, method)
+  })
+  for (let child of element.children) process(child)
+}
+
+function processAll() {
+  const withData = [...primaryAttributes, ...primaryAttributes.map(name => 'data-' + name)]
+  const methodQueryString = withData.map(name => `[${name}]`).join(',')
+  const toProcess = document.querySelectorAll(methodQueryString)
+  toProcess.forEach(process)
+}
+
+function eQuerySelector(element, eSelector) {
+  const [modifier, selector] = eSelector.split(' ')
+
+  // "this" is not currently implemented here because "this" has different dehavior in context
+  switch(modifier) {
+    case 'closest':
+      return [element.closest(selector)]
+    case 'find':
+      return [element.querySelector(selector)]
+    default:
+      return document.querySelectorAll(eSelector)
+  }
+}
+
 /**
  * Safely append new query parameters to a route.
  * Method assumes that there is no anchor link (#)
@@ -112,24 +139,34 @@ function appendQueryParams(route, formData) {
     return baseUrl + '?' + firstParamString + secondParamString
 }
 
+function includeElement(e, formData, processed) {
+  if (processed.has(e)) return
+
+  processed.add(e)
+  if (e.tagName === 'FORM') {
+    formData.merge(new FormData(e))
+    return
+  }
+  const name = e.getAttribute('name')
+  const value = e.value
+  if (name && value) {
+    formData.append(name, value)
+  } else {
+    for (const child of e.children) {
+      includeElement(child, formData, processed)
+    }
+  }
+}
+
 function hxVal(element, name, inherited = false) {
   const elementWithValue = inherited ? element.closest('[name]') : element
   return elementWithValue.getAttribute(name) || elementWithValue.getAttribute('data-' + name)
 }
 
-function process(element) {
-  primaryAttributes.forEach((name) => {
-    const [, method] = name.split('-')
-    addPrimary(element, method)
-  })
-  for (let child of element.children) process(child)
-}
-
-function processAll() {
-  const withData = [...primaryAttributes, ...primaryAttributes.map(name => 'data-' + name)]
-  const methodQueryString = withData.map(name => `[${name}]`).join(',')
-  const toProcess = document.querySelectorAll(methodQueryString)
-  toProcess.forEach(process)
+FormData.prototype.merge = function(other) {
+  for (const [name, value] of other.entries()) {
+    this.append(name,value)
+  }
 }
 
 if (document.readyState === 'loading') {

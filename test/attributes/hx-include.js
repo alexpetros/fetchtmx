@@ -82,7 +82,6 @@ describe("hx-include attribute", function() {
 
   it('Two inputs are included twice when they have the same name', async () => {
     fetchMock.post((url, options) => {
-      console.log(options.body)
       return url === '/include' && options.body === 'i1=test&i1=test2'
     }, 'Clicked!')
     var div = make(`
@@ -139,79 +138,76 @@ describe("hx-include attribute", function() {
     div.innerHTML.should.equal("Clicked!");
   });
 
-  it('Two inputs can be referred to externally', function () {
-    this.server.respondWith("POST", "/include", function (xhr) {
-      var params = getParameters(xhr);
-      params['i1'].should.equal("test");
-      params['i2'].should.equal("test");
-      xhr.respond(200, {}, "Clicked!")
-    });
+  it('Two inputs can be referred to externally', async () => {
+    fetchMock.post((url, options) => {
+      return url === '/include' && options.body === 'i1=test&i2=test'
+    }, 'Clicked!')
     make('<input id="i1" name="i1" value="test"/>');
     make('<input id="i2" name="i2" value="test"/>');
     var div = make('<div hx-post="/include" hx-include="#i1, #i2"></div>')
     div.click();
-    this.server.respond();
+    await fetchMock.flush(true)
     div.innerHTML.should.equal("Clicked!");
   });
 
-  it('A form can be referred to externally', function () {
-    this.server.respondWith("POST", "/include", function (xhr) {
-      var params = getParameters(xhr);
-      params['i1'].should.equal("test");
-      params['i2'].should.equal("test");
-      xhr.respond(200, {}, "Clicked!")
-    });
-    make('<form id="f1">' +
-      '<input name="i1" value="test"/>' +
-      '<input  name="i2" value="test"/>' +
-      '</form> ');
+  it('A form can be referred to externally', async () => {
+    fetchMock.post((url, options) => {
+      return url === '/include' && options.body === 'i1=test&i2=test'
+    }, 'Clicked!')
+    make(`
+      <form id="f1">
+        <input name="i1" value="test"/>
+        <input  name="i2" value="test"/>
+      </form>
+    `)
     var div = make('<div hx-post="/include" hx-include="#f1"></div>')
     div.click();
-    this.server.respond();
+    await fetchMock.flush(true)
     div.innerHTML.should.equal("Clicked!");
   });
 
-  it('If the element is not includeable, its descendant inputs are included', function () {
-    this.server.respondWith("POST", "/include", function (xhr) {
-      var params = getParameters(xhr);
-      params['i1'].should.equal("test");
-      params['i2'].should.equal("test");
-      xhr.respond(200, {}, "Clicked!")
-    });
-    make('<div id="i"><input name="i1" value="test"/><input name="i2" value="test"/></div>');
+  it('If the element is not includeable, its descendant inputs are included', async () => {
+    fetchMock.post((url, options) => {
+      return url === '/include' && options.body === 'i1=test&i2=test'
+    }, 'Clicked!')
+    make(`
+      <div id="i">
+        <input name="i1" value="test"/>
+        <input name="i2" value="test"/>
+      </div>
+    `)
     var div = make('<div hx-post="/include" hx-include="#i"></div>')
     div.click();
-    this.server.respond();
+    await fetchMock.flush(true)
     div.innerHTML.should.equal("Clicked!");
   })
 
-  it('The `closest` modifier can be used in the hx-include selector', function () {
-    this.server.respondWith("POST", "/include", function (xhr) {
-      var params = getParameters(xhr);
-      params['i1'].should.equal("test");
-      params['i2'].should.equal("test");
-      xhr.respond(200, {}, "Clicked!")
-    });
+  it('The `closest` modifier can be used in the hx-include selector', async () => {
+    fetchMock.post((url, options) => {
+      return url === '/include' && options.body === 'i1=test&i2=test'
+    }, 'Clicked!')
     make('<div id="i"><input name="i1" value="test"/><input name="i2" value="test"/>'+
       '<button id="btn" hx-post="/include" hx-include="closest div"></button></div>');
     var btn = byId('btn')
     btn.click();
-    this.server.respond();
+    await fetchMock.flush(true)
     btn.innerHTML.should.equal("Clicked!");
   })
 
-  it('The `this` modifier can be used in the hx-include selector', function () {
-    this.server.respondWith("POST", "/include", function (xhr) {
-      var params = getParameters(xhr);
-      params['i1'].should.equal("test");
-      params['i2'].should.equal("test");
-      xhr.respond(200, {}, "Clicked!")
-    });
-    make('<div id="i" hx-include="this"><input name="i1" value="test"/><input name="i2" value="test"/>'+
-      '<button id="btn" hx-post="/include"></button></div>');
+  it('The `this` modifier can be used in the hx-include selector', async () => {
+    fetchMock.post((url, options) => {
+      return url === '/include' && options.body === 'i1=test&i2=test'
+    }, 'Clicked!')
+    make(`
+      <div id="i" hx-include="this">
+        <input name="i1" value="test"/>
+        <input name="i2" value="test"/>
+        <button id="btn" hx-post="/include"></button>
+      </div>
+    `)
     var btn = byId('btn')
     btn.click();
-    this.server.respond();
+    await fetchMock.flush(true)
     btn.innerHTML.should.equal("Clicked!");
   })
 
