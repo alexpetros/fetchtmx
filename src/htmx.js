@@ -43,9 +43,12 @@ function addPrimary(element, method) {
     if (method !== 'get') formData = new FormData(closestForm)
   } else if (closestInclude) {
     const includeSelector = hxVal(closestInclude, 'hx-include')
+
+    // In the case of hx-include, "this" means the element that the property was defined on,
+    // not the element that inherited it. This is the opposite of how "closest" and "find" behave.
     const elementsToSubmit = includeSelector === 'this' ?
       closestInclude.querySelectorAll('*') :
-      eQuerySelector(element, `${includeSelector}`)
+      eQuerySelectorAll(element, `${includeSelector}`)
     const processed = new Set()
     elementsToSubmit.forEach(e => { includeElement(e, formData, processed) })
   } else if (hasValue) {
@@ -84,16 +87,26 @@ function addPrimary(element, method) {
   const inheritedTarget = element.closest('[hx-target=this]') || element.closest('[data-hx-target=this]')
   const target = inheritedTarget || element
 
+
   element.addEventListener(trigger, async () => {
     try {
-      const res = await fetch(route, { method, body })
+      const request = fetch(route, { method, body })
+
+      const disabledEltsQuery = hxVal(element, 'hx-disabled-elt', true)
+      const elementsToDisable = disabledEltsQuery && eQuerySelectorAll(element, disabledEltsQuery)
+
+      if (elementsToDisable) elementsToDisable.map(incrementDisabled)
+
+      const res = await request
       const text = await res.text()
+
+      if (elementsToDisable) elementsToDisable.map(decrementDisabled)
+
       target.innerHTML = text
     } catch (error) {
       throw error
     }
   })
-
 }
 
 function process(element) {
@@ -111,17 +124,37 @@ function processAll() {
   toProcess.forEach(process)
 }
 
-function eQuerySelector(element, eSelector) {
+function eQuerySelectorAll(element, eSelector) {
   const [modifier, selector] = eSelector.split(' ')
 
   // "this" is not currently implemented here because "this" has different dehavior in context
   switch(modifier) {
+    case 'this':
+      return [element]
     case 'closest':
       return [element.closest(selector)]
     case 'find':
       return [element.querySelector(selector)]
     default:
-      return document.querySelectorAll(eSelector)
+      return Array.from(document.querySelectorAll(eSelector))
+  }
+}
+
+function incrementDisabled(element) {
+  const count = element.hxDisabledCount || 0
+  if (!count) {
+    element.setAttribute('disabled', 'true')
+  }
+
+  element.hxDisabledCount = count + 1
+}
+
+function decrementDisabled(element) {
+  const count = element.hxDisabledCount || 0
+  if (count > 1) {
+    element.hxDisabledCount = count - 1
+  } else {
+    element.removeAttribute('disabled')
   }
 }
 
@@ -159,8 +192,12 @@ function includeElement(e, formData, processed) {
 }
 
 function hxVal(element, name, inherited = false) {
-  const elementWithValue = inherited ? element.closest('[name]') : element
-  return elementWithValue.getAttribute(name) || elementWithValue.getAttribute('data-' + name)
+  let e = element
+  if (inherited) {
+    e = element.closest(`[${name}], [data-${name}]`) || element
+  }
+
+  return e.getAttribute(name) || e.getAttribute('data-' + name)
 }
 
 FormData.prototype.merge = function(other) {
