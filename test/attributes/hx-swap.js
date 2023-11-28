@@ -70,9 +70,9 @@ describe("hx-swap attribute", function(){
   it('swap afterbegin properly', async () =>
     {
       var i = 0;
-      this.server.respondWith("GET", "/test", function(xhr){
+      fetchMock.get('/test', async () => {
         i++;
-        xhr.respond(200, {}, "" + i);
+        return { status: 200, body: `${i}` }
       });
 
       var div = make('<div hx-get="/test" hx-swap="afterbegin">*</div>')
@@ -93,9 +93,9 @@ describe("hx-swap attribute", function(){
   it('swap afterbegin properly with no initial content', async () =>
     {
       var i = 0;
-      this.server.respondWith("GET", "/test", function(xhr){
+      fetchMock.get('/test', async () => {
         i++;
-        xhr.respond(200, {}, "" + i);
+        return { status: 200, body: `${i}` }
       });
 
       var div = make('<div hx-get="/test" hx-swap="afterbegin"></div>')
@@ -116,11 +116,12 @@ describe("hx-swap attribute", function(){
   it('swap afterend properly', async () =>
     {
       var i = 0;
-      this.server.respondWith("GET", "/test", function(xhr){
-        i++;
-        xhr.respond(200, {}, '<a id="a' + i + '" hx-get="/test2" hx-swap="innerHTML">' + i + '</a>');
-      });
-      this.server.respondWith("GET", "/test2", "*");
+      fetchMock.get("/test", async () => {
+        i++
+        const body = `<a id="a${i}" hx-get="/test2" hx-swap="innerHTML">${i}</a>`
+        return { status: 200, body }
+      })
+      fetchMock.get("/test2", "*");
 
       var div = make('<div hx-get="/test" hx-swap="afterend">*</div>')
       var parent = div.parentElement;
@@ -143,14 +144,12 @@ describe("hx-swap attribute", function(){
       removeWhiteSpace(parent.innerText).should.equal("***");
     });
 
-  it('handles beforeend properly', async () =>
-    {
+  it('handles beforeend properly', async () => {
       var i = 0;
-      this.server.respondWith("GET", "/test", function(xhr){
+      fetchMock.get('/test', async () => {
         i++;
-        xhr.respond(200, {}, "" + i);
+        return { status: 200, body: `${i}` }
       });
-
       var div = make('<div hx-get="/test" hx-swap="beforeend">*</div>')
 
       div.click();
@@ -169,9 +168,9 @@ describe("hx-swap attribute", function(){
   it('handles beforeend properly with no initial content', async () =>
     {
       var i = 0;
-      this.server.respondWith("GET", "/test", function(xhr){
+      fetchMock.get('/test', async () => {
         i++;
-        xhr.respond(200, {}, "" + i);
+        return { status: 200, body: `${i}` }
       });
 
       var div = make('<div hx-get="/test" hx-swap="beforeend"></div>')
@@ -287,7 +286,7 @@ describe("hx-swap attribute", function(){
     });
   it('swap delete works properly', async () =>
     {
-      this.server.respondWith("GET", "/test", 'Oops, deleted!');
+      fetchMock.get("/test", 'Oops, deleted!');
 
       var div = make('<div id="d1" hx-swap="delete" hx-get="/test">Foo</div>')
       div.click();

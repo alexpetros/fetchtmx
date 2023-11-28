@@ -1,5 +1,6 @@
 const config = {
-  getCacheBusterParam: false
+  getCacheBusterParam: false,
+  defaultSwapStyle: 'innerHTML' // I maybe want to change this
 }
 
 const htmx = {
@@ -119,6 +120,28 @@ function performSwap (element, swapStyle, html) {
       process(newElement)
       break
     }
+    case 'afterbegin': {
+      element.insertAdjacentHTML('afterbegin', html)
+      const newElement = element.firstChild
+      process(newElement)
+      break
+    }
+    case 'beforeend': {
+      element.insertAdjacentHTML('beforeend', html)
+      const newElement = element.lastChild
+      process(newElement)
+      break
+    }
+    case 'afterend': {
+      element.insertAdjacentHTML('afterend', html)
+      const newElement = element.nextSibling
+      process(newElement)
+      break
+    }
+    case 'delete': {
+      element.remove()
+      break
+    }
     case 'outerHTML': {
       element.insertAdjacentHTML('beforebegin', html)
       // previousSibling INCLUDES text nodes so in theory this does what I want
@@ -135,7 +158,9 @@ function performSwap (element, swapStyle, html) {
 }
 
 function process(element) {
-  console.log(element)
+  // Sometimes we insert + process nodes that are just text
+  if (element.nodeName === '#text') return
+
   primaryAttributes.forEach((name) => {
     const [, method] = name.split('-')
     addPrimaryListener(element, method)
