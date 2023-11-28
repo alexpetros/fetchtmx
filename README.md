@@ -1,6 +1,59 @@
 # fetchtmx
+Spec-compatible rewrite of htmx with the Fetch API.
 
-45/650 TESTS PASSING
+## Progress
+51 TESTS PASSING
+
+### Core Attributes
+* [] hx-boost
+* [x] hx-get
+* [x] hx-post
+* [] hx-on
+* [] hx-push-url
+* [] hx-select
+* [] hx-select-oob
+* [] hx-swap
+* [] hx-swap-oob
+* [] hx-target
+* [] hx-trigger
+* [] hx-vals
+
+### Additional Attributes
+* [] hx-confirm
+* [x] hx-delete
+* [] hx-disable
+* [x] hx-disabled-elt
+* [] hx-disinherit
+* [] hx-encoding
+* [] hx-ext
+* [] hx-headers
+* [] hx-history
+* [] hx-history-elt
+* [x] hx-include
+* [] hx-indicator
+* [] hx-params
+* [x] hx-patch
+* [] hx-preserve
+* [] hx-prompt
+* [x] hx-put
+* [] hx-replace-url
+* [] hx-request
+* [] hx-sse
+* [] hx-sync
+* [] hx-validate
+* [] hx-vars
+* [] hx-ws
+
+### Other Features
+Some of these are more substantial than others, I will break them out eventually
+
+* [] classes (`htmx-added`, `htmx-indicator`, etc.)
+* [] request headers
+* [] response headers
+* [] events (limited compatibility here since `fetch` is a completely different API from XHR)
+* [] JavaScript API
+* [] config options
+
 
 ## How do I run it?
 `npm i` to install the test dependencies, and then `open ./test/index.html`
@@ -40,4 +93,4 @@ available for use by anyone, especially including bigskysoftware.
 
 ## What license is this available under?
 BSD 2-Clause, same as htmx. The tests are based on the tests from the htmx and are being modified
-for use in this project. The `htmx.js` source file is my own, but licensed under the same terms.
+for use in this project, under those terms. The `htmx.js` source file is my own, but licensed under the same terms.
