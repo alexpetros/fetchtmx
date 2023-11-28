@@ -1,10 +1,23 @@
 {
   "license": "BSD 2-Clause",
   "scripts": {
+    "lint": "eslint src test",
+    "format": "eslint --fix src",
+    "test": "mocha-chrome test/index.html"
+  },
+  "eslintConfig": {
+    "extends": "standard",
+    "rules": {
+      "camelcase": 0,
+      "n/handle-callback-err": 0,
+      "space-before-function-paren": ["error", "never"]
+    }
   },
   "devDependencies": {
     "chai": "^4.3.7",
     "chai-dom": "^1.11.0",
+    "eslint": "^8.50.0",
+    "eslint-config-standard": "^17.1.0",
     "fetch-mock": "^9.11.0",
     "mocha": "^9.2.2",
     "mocha-chrome": "^2.2.0",
