@@ -10,7 +10,7 @@ const htmx = {
 
 const primaryAttributes = ['hx-get', 'hx-post', 'hx-delete', 'hx-put', 'hx-patch']
 
-function addPrimary(element, method) {
+function addPrimaryListener(element, method) {
   const attribRoute = hxVal(element, `hx-${method}`)
   if (!attribRoute) return
 
@@ -98,21 +98,47 @@ function addPrimary(element, method) {
       if (elementsToDisable) elementsToDisable.map(incrementDisabled)
 
       const res = await request
-      const text = await res.text()
+      const responseText = await res.text()
+
+      const swapStyle = hxVal(element, 'hx-swap')
+      performSwap(target, swapStyle, responseText)
 
       if (elementsToDisable) elementsToDisable.map(decrementDisabled)
-
-      target.innerHTML = text
     } catch (error) {
       throw error
     }
   })
 }
 
+function performSwap (element, swapStyle, html) {
+
+  switch (swapStyle) {
+    case 'beforebegin': {
+      element.insertAdjacentHTML('beforebegin', html)
+      const newElement = element.previousSibling
+      process(newElement)
+      break
+    }
+    case 'outerHTML': {
+      element.insertAdjacentHTML('beforebegin', html)
+      // previousSibling INCLUDES text nodes so in theory this does what I want
+      const newElement = element.previousSibling
+      process(newElement)
+      element.remove()
+      break
+    }
+    case 'innerHTML':
+    default:
+      element.innerHTML = html
+      process(element)
+  }
+}
+
 function process(element) {
+  console.log(element)
   primaryAttributes.forEach((name) => {
     const [, method] = name.split('-')
-    addPrimary(element, method)
+    addPrimaryListener(element, method)
   })
   for (let child of element.children) process(child)
 }

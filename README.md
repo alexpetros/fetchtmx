@@ -1,6 +1,6 @@
 # fetchtmx
 
-30/650 TESTS PASSING
+45/650 TESTS PASSING
 
 ## How do I run it?
 `npm i` to install the test dependencies, and then `open ./test/index.html`
