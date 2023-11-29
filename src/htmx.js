@@ -9,6 +9,24 @@ const htmx = {
   process,
 }
 
+function processAll() {
+  const withData = [...primaryAttributes, ...primaryAttributes.map(name => 'data-' + name)]
+  const methodQueryString = withData.map(name => `[${name}]`).join(',')
+  const toProcess = document.querySelectorAll(methodQueryString)
+  toProcess.forEach(process)
+}
+
+function process(element) {
+  // Sometimes we insert + process nodes that are just text
+  if (element.nodeName === '#text') return
+
+  primaryAttributes.forEach((name) => {
+    const [, method] = name.split('-')
+    addPrimaryListener(element, method)
+  })
+  for (let child of element.children) process(child)
+}
+
 const primaryAttributes = ['hx-get', 'hx-post', 'hx-delete', 'hx-put', 'hx-patch']
 
 function addPrimaryListener(element, method) {
@@ -88,6 +106,8 @@ function addPrimaryListener(element, method) {
   const inheritedTarget = element.closest('[hx-target=this]') || element.closest('[data-hx-target=this]')
   const target = inheritedTarget || element
 
+  const swapStyle = hxVal(element, 'hx-swap')
+  const performSwap = getSwapFunction(swapStyle)
 
   element.addEventListener(trigger, async () => {
     try {
@@ -100,9 +120,7 @@ function addPrimaryListener(element, method) {
 
       const res = await request
       const responseText = await res.text()
-
-      const swapStyle = hxVal(element, 'hx-swap')
-      performSwap(target, swapStyle, responseText)
+      await performSwap(target, responseText)
 
       if (elementsToDisable) elementsToDisable.map(decrementDisabled)
     } catch (error) {
@@ -111,68 +129,96 @@ function addPrimaryListener(element, method) {
   })
 }
 
-function performSwap (element, swapStyle, html) {
+const SWAP_MODIFIERS = ['transition', 'swap', 'settle', 'ignoreTitle', 'scroll', 'show']
+function getSwapFunction (swapString) {
+  if (!swapString) {
+    return async (target, html) => {
+      parseSwapStyle(config.defaultSwapStyle)(target, html)
+    }
+  }
 
-  switch (swapStyle) {
-    case 'beforebegin': {
-      element.insertAdjacentHTML('beforebegin', html)
-      const newElement = element.previousSibling
-      process(newElement)
-      break
+  const tokens = swapString.split(' ')
+  const swapStyle = tokens[0]
+  const modifierTokens = tokens.slice(1)
+
+  const modifiers = modifierTokens.reduce((accum, current) => {
+    const [name, value] = current.split(':')
+    if (!SWAP_MODIFIERS.includes(name)) {
+      console.error(`Unknown swap token ${name}`)
+    } else {
+      accum[name] = value || true
     }
-    case 'afterbegin': {
-      element.insertAdjacentHTML('afterbegin', html)
-      const newElement = element.firstChild
-      process(newElement)
-      break
-    }
-    case 'beforeend': {
-      element.insertAdjacentHTML('beforeend', html)
-      const newElement = element.lastChild
-      process(newElement)
-      break
-    }
-    case 'afterend': {
-      element.insertAdjacentHTML('afterend', html)
-      const newElement = element.nextSibling
-      process(newElement)
-      break
-    }
-    case 'delete': {
-      element.remove()
-      break
-    }
-    case 'outerHTML': {
-      element.insertAdjacentHTML('beforebegin', html)
-      // previousSibling INCLUDES text nodes so in theory this does what I want
-      const newElement = element.previousSibling
-      process(newElement)
-      element.remove()
-      break
-    }
-    case 'innerHTML':
-    default:
-      element.innerHTML = html
-      process(element)
+    return accum
+
+  }, {})
+
+  const swapFunc = parseSwapStyle(swapStyle)
+  return async (target, html) => {
+    if (modifiers.swap) await sleep((modifiers.swap))
+    swapFunc(target, html)
+    if (modifiers.settle) await sleep(parseTimeInterval(modifiers.settle))
   }
 }
 
-function process(element) {
-  // Sometimes we insert + process nodes that are just text
-  if (element.nodeName === '#text') return
 
-  primaryAttributes.forEach((name) => {
-    const [, method] = name.split('-')
-    addPrimaryListener(element, method)
-  })
-  for (let child of element.children) process(child)
+function swapBeforeBegin (element, html) {
+  element.insertAdjacentHTML('beforebegin', html)
+  const newElement = element.previousSibling
+  process(newElement)
 }
 
-function processAll() {
-  const withData = [...primaryAttributes, ...primaryAttributes.map(name => 'data-' + name)]
-  const methodQueryString = withData.map(name => `[${name}]`).join(',')
-  const toProcess = document.querySelectorAll(methodQueryString)
-  toProcess.forEach(process)
+function swapAfterBegin(element, html) {
+  element.insertAdjacentHTML('afterbegin', html)
+  const newElement = element.firstChild
+  process(newElement)
+}
+
+function swapBeforeEnd(element, html) {
+  element.insertAdjacentHTML('beforeend', html)
+  const newElement = element.lastChild
+  process(newElement)
+}
+
+function swapAfterEnd(element, html) {
+  element.insertAdjacentHTML('afterend', html)
+  const newElement = element.nextSibling
+  process(newElement)
+}
+
+function swapOuterHTML(element, html) {
+  element.insertAdjacentHTML('beforebegin', html)
+  // previousSibling INCLUDES text nodes so in theory this does what I want
+  const newElement = element.previousSibling
+  process(newElement)
+  element.remove()
+}
+
+function swapInnnerHTML(element, html) {
+  element.innerHTML = html
+  process(element)
+}
+
+function parseSwapStyle(swapStyle) {
+  if (!swapStyle) return undefined
+
+  switch (swapStyle) {
+    case 'beforebegin':
+      return swapBeforeBegin
+    case 'afterbegin':
+      return swapAfterBegin;
+    case 'beforeend':
+      return swapBeforeEnd
+    case 'afterend':
+      return swapAfterEnd
+    case 'none':
+      return () => {}
+    case 'delete':
+      return (e) => e.remove()
+    case 'outerHTML':
+      return swapOuterHTML
+    case 'innerHTML':
+      return swapInnnerHTML
+  }
 }
 
 function eQuerySelectorAll(element, eSelector) {
@@ -263,3 +309,28 @@ if (document.readyState === 'loading') {
   processAll()
 }
 
+/**
+ * Get a promise that resolves after the time in milliseconds has elapsed.
+ *
+ * You can combine this with async/await syntax to "wait" for a certain period of time the
+ * sequential execution of your function. For instance:
+ *   await sleep(3000)
+ * will continue executing the function after 3 seconds.
+ */
+function sleep(milliseconds) {
+  return new Promise((resolve) => setTimeout(() => resolve(), milliseconds))
+}
+
+function parseTimeInterval(str) {
+  if (typeof str !== 'string') return NaN
+
+  if (str.slice(-2) === 'ms') {
+    return parseFloat(str.slice(0, -2))
+  } else if (str.slice(-1) === 's') {
+    return parseFloat(str.slice(0, -1)) * 1000
+  } else if (str.slice(-1) === 'm') {
+    return parseFloat(str.slice(0, -1)) * 1000 * 60
+  } else {
+    return NaN
+  }
+}

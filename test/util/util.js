@@ -131,4 +131,8 @@ function IsIE11() {
     return !supportsTemplates() && !supportsSvgTitles() && !supportsFormAttribute() && !supportsXPath()
 }
 
+function sleep(milliseconds) {
+  return new Promise((resolve) => setTimeout(() => resolve(), milliseconds))
+}
+
 // endregion

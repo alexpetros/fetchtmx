@@ -221,27 +221,23 @@ describe("hx-swap attribute", function(){
   })
 
   it('works with a swap delay', async () => {
-    this.server.respondWith("GET", "/test", "Clicked!");
-    var div = make("<div hx-get='/test' hx-swap='innerHTML swap:10ms'></div>");
+    fetchMock.get("/test", "Clicked!");
+    var div = make("<div hx-get='/test' hx-swap='innerHTML swap:1s'></div>");
     div.click();
     await fetchMock.flush(true)
     div.innerText.should.equal("");
-    setTimeout(function () {
-      div.innerText.should.equal("Clicked!");
-      done();
-    }, 30);
+    await sleep(30)
+    div.innerText.should.equal("Clicked!");
   });
 
   it('works with a settle delay', async () => {
-    this.server.respondWith("GET", "/test", "<div id='d1' class='foo' hx-get='/test' hx-swap='outerHTML settle:10ms'></div>");
-    var div = make("<div id='d1' hx-get='/test' hx-swap='outerHTML settle:10ms'></div>");
+    fetchMock.get("/test", "<div id='d1' class='foo' hx-get='/test' hx-swap='outerHTML settle:10ms'></div>");
+    var div = make("<div id='d1' hx-get='/test' hx-swap='outerHTML settle:1s'></div>");
     div.click();
     await fetchMock.flush(true)
     div.classList.contains('foo').should.equal(false);
-    setTimeout(function () {
-      byId('d1').classList.contains('foo').should.equal(true);
-      done();
-    }, 30);
+    await sleep(30)
+    byId('d1').classList.contains('foo').should.equal(true);
   });
 
   it('swap outerHTML properly  w/ data-* prefix', async () =>
@@ -261,7 +257,7 @@ describe("hx-swap attribute", function(){
 
   it('swap none works properly', async () =>
     {
-      this.server.respondWith("GET", "/test", 'Ooops, swapped');
+      fetchMock.get("/test", 'Ooops, swapped');
 
       var div = make('<div hx-swap="none" hx-get="/test">Foo</div>')
       div.click();
@@ -284,6 +280,7 @@ describe("hx-swap attribute", function(){
       should.equal(byId("d1"), null);
       count.should.equal(0);
     });
+
   it('swap delete works properly', async () =>
     {
       fetchMock.get("/test", 'Oops, deleted!');
@@ -299,7 +296,7 @@ describe("hx-swap attribute", function(){
       var initialSwapStyle = htmx.config.defaultSwapStyle;
       htmx.config.defaultSwapStyle = "outerHTML";
       try {
-        this.server.respondWith("GET", "/test", "Clicked!");
+        fetchMock.get("/test", "Clicked!");
 
         var div = make('<div><button id="b1" hx-swap="foo" hx-get="/test">Initial</button></div>')
         var b1 = byId("b1");
