@@ -2,7 +2,7 @@
 Spec-compatible rewrite of htmx with the Fetch API.
 
 ## Progress
-51 TESTS PASSING
+55 TESTS PASSING
 
 ### Core Attributes
 * [] hx-boost

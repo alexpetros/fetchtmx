@@ -106,9 +106,6 @@ function addPrimaryListener(element, method) {
   const inheritedTarget = element.closest('[hx-target=this]') || element.closest('[data-hx-target=this]')
   const target = inheritedTarget || element
 
-  const swapStyle = hxVal(element, 'hx-swap')
-  const performSwap = getSwapFunction(swapStyle)
-
   element.addEventListener(trigger, async () => {
     try {
       const request = fetch(route, { method, body })
@@ -119,8 +116,10 @@ function addPrimaryListener(element, method) {
       if (elementsToDisable) elementsToDisable.map(incrementDisabled)
 
       const res = await request
-      const responseText = await res.text()
-      await performSwap(target, responseText)
+      const html = await res.text()
+
+      const swapStyle = hxVal(element, 'hx-swap')
+      await performSwap(target, swapStyle, html)
 
       if (elementsToDisable) elementsToDisable.map(decrementDisabled)
     } catch (error) {
@@ -130,16 +129,11 @@ function addPrimaryListener(element, method) {
 }
 
 const SWAP_MODIFIERS = ['transition', 'swap', 'settle', 'ignoreTitle', 'scroll', 'show']
-function getSwapFunction (swapString) {
-  if (!swapString) {
-    return async (target, html) => {
-      parseSwapStyle(config.defaultSwapStyle)(target, html)
-    }
-  }
+async function performSwap (target, swapString, html) {
 
-  const tokens = swapString.split(' ')
+  const tokens = swapString?.split(' ') || ''
   const swapStyle = tokens[0]
-  const modifierTokens = tokens.slice(1)
+  const modifierTokens = tokens.slice(1) || []
 
   const modifiers = modifierTokens.reduce((accum, current) => {
     const [name, value] = current.split(':')
@@ -152,12 +146,10 @@ function getSwapFunction (swapString) {
 
   }, {})
 
-  const swapFunc = parseSwapStyle(swapStyle)
-  return async (target, html) => {
-    if (modifiers.swap) await sleep((modifiers.swap))
-    swapFunc(target, html)
-    if (modifiers.settle) await sleep(parseTimeInterval(modifiers.settle))
-  }
+  const swapFunc = parseSwapStyle(swapStyle) || parseSwapStyle(htmx.config.defaultSwapStyle)
+  if (modifiers.swap) await sleep((modifiers.swap))
+  swapFunc(target, html)
+  if (modifiers.settle) await sleep(parseTimeInterval(modifiers.settle))
 }
 
 
@@ -218,6 +210,8 @@ function parseSwapStyle(swapStyle) {
       return swapOuterHTML
     case 'innerHTML':
       return swapInnnerHTML
+    default:
+      return undefined
   }
 }
 
